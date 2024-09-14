@@ -52,7 +52,7 @@ func IndexEmployee(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(employees)
 }
 
-func EmployeeDetail(w http.ResponseWriter, r *http.Request) {
+func DetailEmployee(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 1 {
@@ -122,8 +122,8 @@ func DeleteEmployee(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/index", IndexEmployee)
-	http.HandleFunc("/index/create_employee", CreateEmployee)
-	http.HandleFunc("/index/detail", EmployeeDetail)
+	http.HandleFunc("/index/create", CreateEmployee)
+	http.HandleFunc("/index/detail", DetailEmployee)
 	http.HandleFunc("/index/update", UpdateEmployee)
 	http.HandleFunc("/index/delete", DeleteEmployee)
 	log.Println("Starting server on :8081...")
