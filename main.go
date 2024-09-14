@@ -31,6 +31,10 @@ var (
 	err       error
 )
 
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+}
+
 func init() {
 	// Docker上のPostgreSQLに接続
 	connStr := "host=localhost port=5432 user=suser password=spass dbname=company sslmode=disable"
@@ -49,6 +53,7 @@ func init() {
 }
 
 func CreateEmployee(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 	var newEmployee Employee
 	err := json.NewDecoder(r.Body).Decode(&newEmployee)
 	if err != nil {
@@ -73,6 +78,7 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 }
 
 func IndexEmployee(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -99,6 +105,7 @@ func IndexEmployee(w http.ResponseWriter, r *http.Request) {
 }
 
 func DetailEmployee(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 1 {
@@ -122,6 +129,7 @@ func DetailEmployee(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 1 {
@@ -152,6 +160,7 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteEmployee(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 1 {
