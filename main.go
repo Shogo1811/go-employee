@@ -32,7 +32,9 @@ var (
 )
 
 func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type")
 }
 
 func init() {
@@ -53,7 +55,13 @@ func init() {
 }
 
 func CreateEmployee(w http.ResponseWriter, r *http.Request) {
+	print(("start"))
+	print(r)
 	enableCors(&w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	var newEmployee Employee
 	err := json.NewDecoder(r.Body).Decode(&newEmployee)
 	if err != nil {
