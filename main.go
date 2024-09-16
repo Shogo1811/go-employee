@@ -33,7 +33,7 @@ var (
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
 	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type")
 }
 
@@ -55,8 +55,6 @@ func init() {
 }
 
 func CreateEmployee(w http.ResponseWriter, r *http.Request) {
-	print(("start"))
-	print(r)
 	enableCors(&w)
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
@@ -87,6 +85,10 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 
 func IndexEmployee(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -114,6 +116,10 @@ func IndexEmployee(w http.ResponseWriter, r *http.Request) {
 
 func DetailEmployee(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 1 {
@@ -138,6 +144,10 @@ func DetailEmployee(w http.ResponseWriter, r *http.Request) {
 
 func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 1 {
@@ -205,6 +215,4 @@ func main() {
 	http.HandleFunc("/index/detail", DetailEmployee)
 	http.HandleFunc("/index/update", UpdateEmployee)
 	http.HandleFunc("/index/delete", DeleteEmployee)
-	log.Println("Starting server on :8081...")
-	log.Fatal(http.ListenAndServe(":8081", nil))
 }
