@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	_ "github.com/lib/pq"
 )
 
@@ -21,6 +23,8 @@ type Employee struct {
 	Department string `json:"department"` // 部署
 	Others     string `json:"others"`     // その他
 	Image      []byte `json:"image"`      // 画像
+	Email      string `json:"email"`      //メールアドレス
+	Password   string `json:"password"`   //パスワード
 }
 
 var (
@@ -30,6 +34,25 @@ var (
 	mu        sync.Mutex
 	err       error
 )
+
+var jwtKey = []byte("my_secret_key")
+
+// JWTを生成するためのクレーム
+type Claims struct {
+	Username string `json:"username"`
+	jwt.RegisteredClaims
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Token   string `json:"token"`
+	Message string `json:"message"`
+	Success bool   `json:"success"`
+}
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
@@ -50,8 +73,66 @@ func init() {
 	if err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-
 	fmt.Println("Successfully connected to PostgreSQL database")
+}
+
+func Login(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	var loginReq LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&loginReq)
+	if err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// データベースからユーザー情報を取得
+	var dbPassword string
+	query := `SELECT password FROM employee WHERE email = $1`
+	err = db.QueryRow(query, loginReq.Email).Scan(&dbPassword)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	} else if err != nil {
+		http.Error(w, "Database query failed", http.StatusInternalServerError)
+		return
+	}
+
+	// パスワードの照合
+	if loginReq.Password != dbPassword {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	// JWTトークンの生成
+	expirationTime := time.Now().Add(5 * time.Minute)
+	claims := &Claims{
+		Username: loginReq.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	// トークンを返す
+	loginRes := LoginResponse{
+		Token:   tokenString,
+		Message: "Login successful",
+		Success: true,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(loginRes)
 }
 
 func CreateEmployee(w http.ResponseWriter, r *http.Request) {
@@ -70,9 +151,9 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	query := `INSERT INTO employee (name, gender, hire_year, address, department, others, image)
-			  VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
-	err = db.QueryRow(query, newEmployee.Name, newEmployee.Gender, newEmployee.HireYear, newEmployee.Address, newEmployee.Department, newEmployee.Others, newEmployee.Image).Scan(&newEmployee.ID)
+	query := `INSERT INTO employee (name, gender, hire_year, address, department, others, image, email, password)
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
+	err = db.QueryRow(query, newEmployee.Name, newEmployee.Gender, newEmployee.HireYear, newEmployee.Address, newEmployee.Department, newEmployee.Others, newEmployee.Image, newEmployee.Email, newEmployee.Password).Scan(&newEmployee.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -210,9 +291,12 @@ func DeleteEmployee(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	http.HandleFunc("/login", Login)
 	http.HandleFunc("/index", IndexEmployee)
 	http.HandleFunc("/index/create", CreateEmployee)
 	http.HandleFunc("/index/detail", DetailEmployee)
 	http.HandleFunc("/index/update", UpdateEmployee)
 	http.HandleFunc("/index/delete", DeleteEmployee)
+	// サーバー起動コマンド
+	log.Fatal(http.ListenAndServe(":8081", nil))
 }
