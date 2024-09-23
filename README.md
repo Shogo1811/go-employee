@@ -22,3 +22,18 @@ CREATE TABLE employee (
     email VARCHAR(255) UNIQUE NOT NULL,  -- メールアドレス（ユニークかつ必須）
     password VARCHAR(255) NOT NULL  -- パスワード（必須）
 );
+
+4　サンプルデータ
+INSERT INTO employee (name, gender, hire_year, address, department, others, image, email, password)
+VALUES (
+    'admin',  -- 名前
+    'M',  -- 性別
+    2024,  -- 入社年
+    '123 Admin St, Admin City',  -- 住所
+    'IT',  -- 部署
+    'Administrator account',  -- その他の情報
+    NULL,  -- 画像（画像をアップロードする場合、BYTEAとしてデータを指定）
+    'admin@example.com',  -- メールアドレス
+    'admin_password'  -- パスワード（適切にハッシュ化されていることが望ましい）
+);
+
